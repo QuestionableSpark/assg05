@@ -740,21 +740,30 @@ void ld_img(char* fname)
  * tests bit 15 of the PSR.  When it is 0 we are currently in supervisor mode, and
  * when it is 1 we are in  user mode.
  *
- * @returns bool True if we are in user mode (bit 15 is 1) and False if we are
+ * @returns iTrue if we are in user mode (bit 15 is 1) and False if we are
  *   in supervisor mode (bit 15 is 0).
  */
+bool is_user_mode() {
+  return (reg[PSR] >> 15) & 0x1;
+}
 
 /** @brief set user mode
  *
  * Set the machine into user mode.  This function sets bit 15 to be 1 to indicate
  * that we are now running in the less privileged user mode.
  */
+void user_mode()  {
+  reg[PSR] |= 0x8000;
+}
 
 /** @brief set supervisor mode
  *
  * Set the machine into supervisor mode.  This function sets bit 15 to be 0
  * to indicate that we are now running in the more privileged supervisor mode.
  */
+void supervisor_mode()  {
+  reg[PSR] &= ~0x8000;
+}
 
 /** @brief get priority
  *
@@ -765,6 +774,9 @@ void ld_img(char* fname)
  *   significant 3 bits should have any value since only priority levels
  *   0 - 7 are possible
  */
+uint16_t priority() {
+  return (reg[PSR] >> 8) & 0x7;
+}
 
 /** @brief set priority
  *
@@ -776,6 +788,10 @@ void ld_img(char* fname)
  *   it is undefined what happens if a value not in this range is set for the
  *   priority.
  */
+void set_priority(uint16_t p) {
+  reg[PSR] &= ~0x0700;    // clears 10:8 bits
+  reg[PSR] |= (p & 0x7) << 8;
+}
 
 /** @brief push value to current stack
  *
