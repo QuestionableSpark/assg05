@@ -550,8 +550,9 @@ void init(uint16_t offset)
 
   // set MCR/PSR, e.g. enable the clock, set priority to 0 and
   // start in user mode
-  // enable_clock();
-  // user_mode();
+  // Task 3: implementing clock functions
+  enable_clock();
+  user_mode();
 
   // initialize memory mapped status registers
   iomap[KBSR] = 0x0000; // 0 indicates no key is available yet for a program to read
@@ -819,17 +820,24 @@ void push(uint16_t value) {
 void pop()  {
   reg[R6]++;
 }
+
 /** @brief enable clock run bit
  *
  * Enable the clock run by setting the MCR run latch bit [15]
  * to 1.
  */
+void enable_clock() {
+  reg[MCR] |= 0x8000;
+}
 
 /** @brief disable clock run bit
  *
  * Disable the machine clock by setting the MCR run latch bit
  * [15] to 0.
  */
+void disable_clock()  {
+  reg[MCR] &= ~0x8000;
+}
 
 /** @brief test is clock running
  *
@@ -840,6 +848,9 @@ void pop()  {
  * @returns bool True if the clock is currently enabled and thus the
  *   system is currently running, false if not.
  */
+bool is_running() {
+  return (reg[MCR] >> 15) & 0x1;
+}
 
 /** @brief exception
  *
