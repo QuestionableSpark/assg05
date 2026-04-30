@@ -803,6 +803,11 @@ void set_priority(uint16_t p) {
  *
  * @param value
  */
+// Task 2: push implementation
+void push(uint16_t value) {
+  reg[R6]--;
+  mem_write(reg[R6], value);
+}
 
 /** @brief pop top of current stack
  *
@@ -811,6 +816,9 @@ void set_priority(uint16_t p) {
  * by the running program.
  */
 
+void pop()  {
+  reg[R6]++;
+}
 /** @brief enable clock run bit
  *
  * Enable the clock run by setting the MCR run latch bit [15]
