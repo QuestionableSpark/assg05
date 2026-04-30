@@ -467,7 +467,19 @@ void jsr(uint16_t i)
  * @param i The instruction.  The bits of the instruction we are
  *   executing.
  */
-void rti(uint16_t i) {}
+void rti(uint16_t i) {
+  // Restore the PSR from the stack (should be on top), then restore PC
+  reg[PSR] = mem_read(reg[R6]);
+  pop();
+  reg[RPC] = mem_read(reg[R6]);
+  pop();
+
+  // Check if restored to user mode, if so save the SSP and call stack pointer
+  if (is_user_mode()) {
+    reg[SSP] = reg[R6];
+    reg[R6] = reg[USP];
+  }
+}
 
 /** @brief reserved
  *
@@ -493,7 +505,24 @@ void res(uint16_t i) {}
  *   executing.  The low 7 bits i[7:0] contain the trap service vector
  *   index to be invoked.
  */
-void trap(uint16_t i) {}
+void trap(uint16_t i) {
+  // Make sure the PSR is saved before any changes
+  uint16_t temp_psr = reg[PSR];
+
+  // If currently in user mode, save the stack pointer and switch to superviosr stack
+  if (is_user_mode()) {
+    reg[USP] = reg[R6];
+    reg[R6] = reg[SSP];
+    supervisor_mode();
+  }
+
+  // push PC first, then PSR so PSR is on top of the stack
+  push(reg[RPC]);
+  push(temp_psr);
+
+  // look up trap service routine address within the trap vector table
+  reg[RPC] = mem_read(TRP(i));
+}
 
 /**
  * LC-3 instruction microcode store / lookup table.  Need to define array
