@@ -684,7 +684,7 @@ void start(uint16_t offset)
 
   // perform the fetch-decode-execute cycle while the
   // run clock/latch is enabled
-  while (true) // needs to be modified to use is_running() once implemented
+  while (is_running()) // Task 5: Changed from 'true' to 'is_running'
   {
     // fetch the next instruction from memory
     uint16_t i = mem_read(reg[RPC]);
@@ -696,7 +696,7 @@ void start(uint16_t offset)
     op_ex[OPC(i)](i);
 
     // perform I/O and interrupt tasks before next fetch
-    // check_device_status();
+    check_device_status();
   }
 }
 
