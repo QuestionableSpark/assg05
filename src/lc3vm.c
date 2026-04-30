@@ -49,6 +49,12 @@ uint16_t PC_START = 0x3000;
  */
 uint16_t mem_read(uint16_t address)
 {
+  // Once a program has read the keyboard data register (KBDR)
+  // it has consumed the character there. Then bit 15 of KBSR is cleared
+  // signaling readiness for another keypress.
+  if (address == KBDR_ADDR) {
+    iomap[KBSR] &= ~0x8000;
+  }
   return mem[address];
 }
 
@@ -69,6 +75,12 @@ uint16_t mem_read(uint16_t address)
  */
 void mem_write(uint16_t address, uint16_t val)
 {
+  // If a program writes a character to the display data register (DDR)
+  // meaning a character is waiting to be displayed. Like KBDR, the 15 bit is cleared
+  // to signal a character pending display. check_device_status() displays the character
+  if (address == DDR_ADDR)  {
+    iomap[DSR] &= ~0x8000;
+  }
   mem[address] = val;
 }
 
