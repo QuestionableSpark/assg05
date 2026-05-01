@@ -47,8 +47,14 @@ uint16_t PC_START = 0x3000;
  *   later as something other than an unsigned integer, but this function
  *   simply reads and returns the 16 bits stored at the indicated address.
  */
-uint16_t mem_read(uint16_t address)
-{
+uint16_t mem_read(uint16_t address) {
+  // Task 7: Implementing an access control violation in mem_read, checks to see if access
+  // attempt is made in user mode.
+  if (is_user_mode() && (address < 0x3000 || address > 0xFDFF)) {
+    except(0x02);
+    return 0x0000;
+  }
+
   // Once a program has read the keyboard data register (KBDR)
   // it has consumed the character there. Then bit 15 of KBSR is cleared
   // signaling readiness for another keypress.
@@ -75,6 +81,12 @@ uint16_t mem_read(uint16_t address)
  */
 void mem_write(uint16_t address, uint16_t val)
 {
+  // Task 7: Implementing an access control violation in mem_write, checks to see if access
+  // attempt is made in user mode
+  if (is_user_mode() && (address < 0x3000 || address > 0xFDFF)) {
+    except(0x02);
+    return;
+  }
   // If a program writes a character to the display data register (DDR)
   // meaning a character is waiting to be displayed. Like KBDR, the 15 bit is cleared
   // to signal a character pending display. check_device_status() displays the character
@@ -480,14 +492,31 @@ void jsr(uint16_t i)
  *   executing.
  */
 void rti(uint16_t i) {
+  // Task 7: if in user mode, invoking rti is considered a privilege mode violation
+  if (is_user_mode()) {
+    except(0x00);
+    return;
+  }
+
   // Restore the PSR from the stack (should be on top), then restore PC
   reg[PSR] = mem_read(reg[R6]);
   pop();
+
+  // Check if the popped PSR indicates user mode before doing second pop
+  bool returning_to_user = is_user_mode();
+
+  // if the check 'returning_to_user' returns yes, switch to superviosr mode
+  // to safely pop the PC
+  if (returning_to_user)  {
+    supervisor_mode();
+  }
+
   reg[RPC] = mem_read(reg[R6]);
   pop();
 
-  // Check if restored to user mode, if so save the SSP and call stack pointer
-  if (is_user_mode()) {
+  // mode switch if needed
+  if (returning_to_user)  {
+    reg[PSR] |= 0x8000;
     reg[SSP] = reg[R6];
     reg[R6] = reg[USP];
   }
@@ -503,7 +532,10 @@ void rti(uint16_t i) {
  *   destination and source register operands, and to extract the
  *   second source register or the immediate value encoded in the
  */
-void res(uint16_t i) {}
+void res(uint16_t i) {
+  // Task 7: Implemeting illegal opcode 1101 (0x01)
+  except(0x01);
+}
 
 /** @brief trap instruction
  *
@@ -908,3 +940,18 @@ bool is_running() {
  *   the exception vector number we use to index into the exception service
  *   vector table.
  */
+
+ // Task 7: implementing except()
+ void except(uint16_t vector) {
+  uint16_t temp_psr = reg[PSR];
+  if (is_user_mode()) {
+    reg[USP] = reg[R6];
+    reg[R6] = reg[SSP];
+    supervisor_mode();
+  }
+  push(reg[RPC]);
+  push(temp_psr);
+
+  // exception vector is offset to being at 0x0100
+  reg[RPC] = mem_read(0x0100 + (vector & 0xFF));
+ }
